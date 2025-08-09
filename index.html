@@ -7,7 +7,7 @@
     <style>
         @font-face {
             font-family: "站酷快乐体";
-            src: url("fonts/ZhanKuKuaiLeTi-lite.ttf") format("truetype");
+            src: url("fonts/ZhanKuKuaiLeTi.ttf") format("truetype");
         }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -26,28 +26,30 @@
     </div>
     <div style="width:100%; display:flex; align-items:center; justify-content: center">
         <div
-            style="display:grid; width:40%; background-color:#f3fffd; align-items:center; justify-content:center; border-radius:3vw; border: solid 1vw hsl(170, 100%, 90%); margin:3vw">
-            <p style="font-size: 5vw; font-family: '站酷快乐体';">这是一把尺子</p>
-            <div
-                style="display:flex; align-items:center; justify-content:center;">
-                <div style="display: flex; align-items:center; justify-content:center; width:1cm; height:1cm; background-color:black; font:0.5cm '站酷快乐体'; color: white;">1cm</div>
-                <div style="display: flex; align-items:center; justify-content:center; width:1cm; height:1cm; background-color:white; font:0.5cm '站酷快乐体'; color: black;">2cm</div>
-                <div style="display: flex; align-items:center; justify-content:center; width:1cm; height:1cm; background-color:black; font:0.5cm '站酷快乐体'; color: white;">8cm</div>
-                <div style="display: flex; align-items:center; justify-content:center; width:1cm; height:1cm; background-color:white; font:0.5cm '站酷快乐体'; color: black;">1dm</div>
-                <div style="display: flex; align-items:center; justify-content:center; width:1cm; height:1cm; background-color:black; font:0.5cm '站酷快乐体'; color: white;">5m</div>
-
-            </div>
+            style="display:grid; width:40%; background-color:#f3fffd; place-items: center; border-radius:3vw; border: solid 1vw hsl(170, 100%, 90%); margin:3vw">
+            <span style="font-size: 5vw; font-family: '站酷快乐体'; margin: 1vw;">一个无用的按钮</span>
+            <span style="font-size: 1vw; font-family: '站酷快乐体'; margin: 1vw;">点到100次有隐藏彩蛋</span>
+            <button id="一个无用的按钮" style="height:20vw; width:20vw; border-radius: 100%; font-size: 5vw; font-family: '站酷快乐体'; margin: 1vw; background-color: white; border:hsl(170, 50%, 95%) solid 3vw;" onclick="一个无用的按钮被按下了()">0</button>
+            <script>
+                function 一个无用的按钮被按下了(){
+                    if (document.getElementById("一个无用的按钮").innerText == '隐藏彩蛋')
+                        document.getElementById("一个无用的按钮").innerText = '100';
+                    document.getElementById("一个无用的按钮").innerText = 1 + Number(document.getElementById("一个无用的按钮").innerText);
+                    if (document.getElementById("一个无用的按钮").innerText == '100')
+                        document.getElementById("一个无用的按钮").innerText = '隐藏彩蛋';
+                }
+            </script>
         </div>
         <div
             style="display:grid; width:40%; background-color:#fff3f3; align-items:center; justify-content:center; border-radius:3vw; border: solid 1vw hsl(0, 100%, 90%); margin:3vw">
             <p style="font-size: 5vw; font-family: '站酷快乐体';">还没想好要做啥</p>
             <div
                 style="display:flex; align-items:center; justify-content:center; border-radius:3vw;">
-                <div style="display: flex; align-items:center; justify-content:center; width:1cm; height:1cm; background-color:black; font:0.5cm '站酷快乐体'; color: white;">马</div>
-                <div style="display: flex; align-items:center; justify-content:center; width:1cm; height:1cm; background-color:white; font:0.5cm '站酷快乐体'; color: black;">上</div>
-                <div style="display: flex; align-items:center; justify-content:center; width:1cm; height:1cm; background-color:black; font:0.5cm '站酷快乐体'; color: white;">更</div>
-                <div style="display: flex; align-items:center; justify-content:center; width:1cm; height:1cm; background-color:white; font:0.5cm '站酷快乐体'; color: black;">新</div>
-                <div style="display: flex; align-items:center; justify-content:center; width:1cm; height:1cm; background-color:black; font:0.5cm '站酷快乐体'; color: white;">...</div>
+                <div style="display: flex; align-items:center; justify-content:center; background-color:black; font:0.5cm '站酷快乐体'; color: white;">马</div>
+                <div style="display: flex; align-items:center; justify-content:center; background-color:white; font:0.5cm '站酷快乐体'; color: black;">上</div>
+                <div style="display: flex; align-items:center; justify-content:center; background-color:black; font:0.5cm '站酷快乐体'; color: white;">更</div>
+                <div style="display: flex; align-items:center; justify-content:center; background-color:white; font:0.5cm '站酷快乐体'; color: black;">新</div>
+                <div style="display: flex; align-items:center; justify-content:center; background-color:black; font:0.5cm '站酷快乐体'; color: white;">...</div>
 
             </div>
         </div>
