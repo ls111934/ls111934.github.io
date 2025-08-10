@@ -55,28 +55,31 @@
         </div>
         <div
             style="display:grid; width:40%; background-color:#fff3f3; align-items:center; justify-content:center; border-radius:3vw; border: solid 1vw hsl(0, 100%, 90%); margin:3vw">
-            <p style="font-size: 5vw; font-family: '站酷快乐体';">还没想好要做啥</p>
-            <div style="display:flex; align-items:center; justify-content:center; border-radius:3vw;">
-                <div
-                    style="display: flex; align-items:center; justify-content:center; background-color:black; font:0.5cm '站酷快乐体'; color: white;">
-                    马</div>
-                <div
-                    style="display: flex; align-items:center; justify-content:center; background-color:white; font:0.5cm '站酷快乐体'; color: black;">
-                    上</div>
-                <div
-                    style="display: flex; align-items:center; justify-content:center; background-color:black; font:0.5cm '站酷快乐体'; color: white;">
-                    更</div>
-                <div
-                    style="display: flex; align-items:center; justify-content:center; background-color:white; font:0.5cm '站酷快乐体'; color: black;">
-                    新</div>
-                <div
-                    style="display: flex; align-items:center; justify-content:center; background-color:black; font:0.5cm '站酷快乐体'; color: white;">
-                    ...</div>
+            <p style="font-size: 5vw; font-family: '站酷快乐体';" onclick="ユ()">点我出ユ</p>
+            <span id="ユ"
+                style="position: absolute; left:0px; top:0px; font-size: 70vw; display:none; text-shadow: 5vw 5vw 3vw rgb(160, 160, 160) ; transform: rotateX(-40deg); color: #333333;">ユ!</span>
+            <script>
+                function sleep(time) {
+                    return new Promise(resolve => setTimeout(resolve, time));
+                }
+                async function ユ() {
+                    document.getElementById("ユ").style.display = "block";
+                    var ユ旋转角 = 0;
+                    while (1) {
+                        document.getElementById("ユ").style.transform = `rotateX(40deg) rotateY(${ユ旋转角}deg)`;
+                        ユ旋转角++;
+                        await sleep(10);
+                        if (ユ旋转角 > 500){
+                            document.getElementById("ユ").style.display = "none";
+                            window.location.href = "https://www.bilibili.com/video/BV1nafnYUEac/";
+                        }
+                    }
+                }
+            </script>
 
-            </div>
         </div>
+    </div>
     </div>
 </body>
 
 </html>
-
