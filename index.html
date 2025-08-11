@@ -65,16 +65,16 @@
                 async function ユ() {
                     document.getElementById("ユ").style.display = "block";
                     var ユ旋转角 = 0;
-                    while (1) {
+                    while (ユ旋转角 <= 500) {
                         document.getElementById("ユ").style.transform = `rotateX(40deg) rotateY(${ユ旋转角}deg)`;
                         ユ旋转角++;
                         await sleep(10);
-                        if (ユ旋转角 > 500) {
-                            document.getElementById("ユ").style.display = "none";
-                            window.location.href = "https://www.bilibili.com/video/BV1nafnYUEac/";
-                            break;
-                        }
+                        document.getElementById("ユ").style.display = "none";
+                        window.location.href = "https://www.bilibili.com/video/BV1nafnYUEac/";
+
                     }
+                    document.getElementById("ユ").style.display = "none";
+                    window.location.href = "https://www.bilibili.com/video/BV1nafnYUEac/";
                 }
             </script>
 
@@ -84,21 +84,20 @@
         <div
             style="display:grid; width:40%; background-color:#fff3f3; align-items:center; justify-content:center; border-radius:3vw; border: solid 1vw hsl(0, 100%, 90%); margin:3vw">
             <p style="font-size: 5vw; font-family: '站酷快乐体';" onclick="喝岩浆()">点我喝岩浆</p>
-            <div
-                id="岩浆桶"
+            <div id="岩浆桶"
                 style="position: absolute; width: 100vw; height: 100vh;top:0px; left:0px; align-items:center; justify-content:center; display:none">
                 <img src="imgs/岩浆桶.webp" style="width: 100vw; height:auto"></img>
             </div>
             <div id="红色背景"
                 style="position: absolute; width: 100vw; height: 100vh;top:0px; left:0px;background-color: #ff000033; display: none;">
-                <img src="imgs/火.gif" style="position: fixed;width: 100vw; height:auto; bottom: 0px; "/>
+                <img src="imgs/火.gif" style="position: fixed;width: 100vw; height:auto; bottom: 0px; " />
             </div>
             <script>
                 function sleep(time) {
                     return new Promise(resolve => setTimeout(resolve, time));
                 }
                 async function 喝岩浆() {
-                    document.getElementById("岩浆桶").style.display="flex";
+                    document.getElementById("岩浆桶").style.display = "flex";
                     const 喝岩浆音效 = new Audio("sounds/drink.ogg");
                     喝岩浆音效.load();
                     for (let i = 0; i < 3; i++) {
@@ -107,8 +106,8 @@
                         await sleep(600);
                     }
                     const 打嗝音效 = new Audio("sounds/burp.ogg");
-                    document.getElementById("岩浆桶").style.display="none";
-                    document.getElementById("红色背景").style.display="flex";
+                    document.getElementById("岩浆桶").style.display = "none";
+                    document.getElementById("红色背景").style.display = "flex";
                     打嗝音效.play()
 
                     const 着火音效 = new Audio("sounds/fire_hurt2.ogg");
@@ -117,7 +116,7 @@
                         着火音效.currentTime = 0;
                         着火音效.play();
                     }
-                    document.getElementById("红色背景").style.display="none";
+                    document.getElementById("红色背景").style.display = "none";
                 }
             </script>
 
