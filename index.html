@@ -7,7 +7,7 @@
     <style>
         @font-face {
             font-family: "站酷快乐体";
-            src: url("fonts/ZhanKuKuaiLeTi.ttf") format("truetype");
+            src: url("fonts/ZhanKuKuaiLeTi-lite.ttf") format("truetype");
         }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -25,80 +25,102 @@
         <span style="font-size:008vw; transform: rotate(000deg);font-family: '站酷快乐体';">东</span>
         <span style="font-size:7.9vw; transform: rotate(040deg);font-family: '站酷快乐体';">西</span>
     </div>
-    <div style="width:100%; display:gird; align-items:center; justify-content: center">
-        <div style="width:100%; display:flex;align-items:center; justify-content: center ">
-            <div
-                style="display:grid; width:40%; background-color:#f3fffd; place-items: center; border-radius:3vw; border: solid 1vw hsl(170, 100%, 90%); margin:3vw">
-                <span style="font-size: 5vw; font-family: '站酷快乐体'; margin: 1vw;">一个无用的按钮</span>
-                <span style="font-size: 3vw; font-family: '站酷快乐体'; margin: 1vw;">有彩蛋</span>
-                <button id="一个无用的按钮"
-                    style="height:20vw; width:20vw; border-radius: 100%; font-size: 4vw; font-family: '站酷快乐体'; margin: 1vw; background-color: white; border:hsl(170, 50%, 95%) solid 3vw;"
-                    onclick="一个无用的按钮被按下了()">0</button>
-                <script>
-                    var 无用按钮按下次数 = 0;
-                    function 一个无用的按钮被按下了() {
-                        无用按钮按下次数++;
-                        var 无用按钮 = document.getElementById("一个无用的按钮");
-                        var 要显示的文字 = "";
-                        const responseMap = {
-                            10: "加油",
-                            20: "100再见",
-                            100: "太闲了",
-                            101: "<a href='https://www.bilibili.com/video/BV1yi4y1875W/'>给你放个视频</a>",
-                            103: "你是黑客？",
-                            104: "114514\n1919810"
-                        };
-                        要显示的文字 = responseMap[无用按钮按下次数] || 无用按钮按下次数;
+    <div style="width:100%; display:flex;align-items:center; justify-content: center ">
+        <div
+            style="display:grid; width:40%; background-color:#f3fffd; place-items: center; border-radius:3vw; border: solid 1vw hsl(170, 100%, 90%); margin:3vw">
+            <span style="font-size: 5vw; font-family: '站酷快乐体'; margin: 1vw;">一个无用的按钮</span>
+            <span style="font-size: 3vw; font-family: '站酷快乐体'; margin: 1vw;">有彩蛋</span>
+            <button id="一个无用的按钮"
+                style="height:20vw; width:20vw; border-radius: 100%; font-size: 4vw; font-family: '站酷快乐体'; margin: 1vw; background-color: white; border:hsl(170, 50%, 95%) solid 3vw;"
+                onclick="一个无用的按钮被按下了()">0</button>
+            <script>
+                var 无用按钮按下次数 = 0;
+                function 一个无用的按钮被按下了() {
+                    无用按钮按下次数++;
+                    var 无用按钮 = document.getElementById("一个无用的按钮");
+                    var 要显示的文字 = "";
+                    const responseMap = {
+                        10: "加油",
+                        20: "100再见",
+                        100: "太闲了",
+                        101: "<a href='https://www.bilibili.com/video/BV1yi4y1875W/'>给你放个视频</a>",
+                        103: "你是黑客？",
+                        104: "114514\n1919810"
+                    };
+                    要显示的文字 = responseMap[无用按钮按下次数] || 无用按钮按下次数;
 
-                        无用按钮.innerHTML = 要显示的文字;
-                    }
-                </script>
-            </div>
-            <div
-                style="display:grid; width:40%; background-color:#fff3f3; align-items:center; justify-content:center; border-radius:3vw; border: solid 1vw hsl(0, 100%, 90%); margin:3vw">
-                <p style="font-size: 5vw; font-family: '站酷快乐体';" onclick="ユ()">点我出ユ</p>
-                <span id="ユ"
-                    style="position: absolute; left:0px; top:0px; font-size: 70vw; display:none; text-shadow: 5vw 5vw 3vw rgb(160, 160, 160) ; transform: rotateX(-40deg); color: #333333;">ユ!</span>
-                <script>
-                    function sleep(time) {
-                        return new Promise(resolve => setTimeout(resolve, time));
-                    }
-                    async function ユ() {
-                        document.getElementById("ユ").style.display = "block";
-                        var ユ旋转角 = 0;
-                        while (1) {
-                            document.getElementById("ユ").style.transform = `rotateX(40deg) rotateY(${ユ旋转角}deg)`;
-                            ユ旋转角++;
-                            await sleep(10);
-                            if (ユ旋转角 > 500) {
-                                document.getElementById("ユ").style.display = "none";
-                                window.location.href = "https://www.bilibili.com/video/BV1nafnYUEac/";
-                            }
-                        }
-                    }
-                </script>
-
-            </div>
+                    无用按钮.innerHTML = 要显示的文字;
+                }
+            </script>
         </div>
-        <br>
         <div
             style="display:grid; width:40%; background-color:#fff3f3; align-items:center; justify-content:center; border-radius:3vw; border: solid 1vw hsl(0, 100%, 90%); margin:3vw">
-            <p style="font-size: 5vw; font-family: '站酷快乐体';" onclick="喝岩浆()">点我喝岩浆</p>
+            <p style="font-size: 5vw; font-family: '站酷快乐体';" onclick="ユ()">点我出ユ</p>
+            <span id="ユ"
+                style="position: absolute; left:0px; top:0px; font-size: 70vw; display:none; text-shadow: 5vw 5vw 3vw rgb(160, 160, 160) ; transform: rotateX(-40deg); color: #333333;">ユ!</span>
             <script>
                 function sleep(time) {
                     return new Promise(resolve => setTimeout(resolve, time));
                 }
-                async function 喝岩浆() {
-                    const 喝岩浆音效 = new Audio("sounds/drink.ogg");
-                    for (let i = 0; i < 3; i++) {
-                        喝岩浆音效.play();
-                        await sleep(200);
+                async function ユ() {
+                    document.getElementById("ユ").style.display = "block";
+                    var ユ旋转角 = 0;
+                    while (1) {
+                        document.getElementById("ユ").style.transform = `rotateX(40deg) rotateY(${ユ旋转角}deg)`;
+                        ユ旋转角++;
+                        await sleep(10);
+                        if (ユ旋转角 > 500) {
+                            document.getElementById("ユ").style.display = "none";
+                            window.location.href = "https://www.bilibili.com/video/BV1nafnYUEac/";
+                        }
                     }
                 }
             </script>
 
         </div>
     </div>
+    <div style="width:100%; display:flex;align-items:center; justify-content: center ">
+        <div
+            style="display:grid; width:40%; background-color:#fff3f3; align-items:center; justify-content:center; border-radius:3vw; border: solid 1vw hsl(0, 100%, 90%); margin:3vw">
+            <p style="font-size: 5vw; font-family: '站酷快乐体';" onclick="喝岩浆()">点我喝岩浆</p>
+            <div
+                id="岩浆桶"
+                style="position: absolute; width: 100vw; height: 100vh;top:0px; left:0px; align-items:center; justify-content:center; display:none">
+                <img src="imgs/岩浆桶.webp" style="width: 100vw; height:auto"></img>
+            </div>
+            <div id="红色背景"
+                style="position: absolute; width: 100vw; height: 100vh;top:0px; left:0px;background-color: #ff000033; display: none;">
+                <img src="imgs/火.gif" style="position: fixed;width: 100vw; height:auto; bottom: 0px; "/>
+            </div>
+            <script>
+                function sleep(time) {
+                    return new Promise(resolve => setTimeout(resolve, time));
+                }
+                async function 喝岩浆() {
+                    document.getElementById("岩浆桶").style.display="flex";
+                    const 喝岩浆音效 = new Audio("sounds/drink.ogg");
+                    喝岩浆音效.load();
+                    for (let i = 0; i < 3; i++) {
+                        喝岩浆音效.currentTime = 0;
+                        喝岩浆音效.play();
+                        await sleep(600);
+                    }
+                    const 打嗝音效 = new Audio("sounds/burp.ogg");
+                    document.getElementById("岩浆桶").style.display="none";
+                    document.getElementById("红色背景").style.display="flex";
+                    打嗝音效.play()
+
+                    const 着火音效 = new Audio("sounds/fire_hurt2.ogg");
+                    for (let i = 0; i < 7; i++) {
+                        await sleep(800);
+                        着火音效.currentTime = 0;
+                        着火音效.play();
+                    }
+                    document.getElementById("红色背景").style.display="none";
+                }
+            </script>
+
+        </div>
     </div>
 </body>
 
