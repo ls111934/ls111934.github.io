@@ -7,7 +7,7 @@
     <style>
         @font-face {
             font-family: "站酷快乐体";
-            src: url("fonts/ZhanKuKuaiLeTi-lite.ttf") format("truetype");
+            src: url("fonts/ZhanKuKuaiLeTi.ttf") format("truetype");
         }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -120,7 +120,43 @@
             </script>
 
         </div>
-    </div>
+        <div
+            style="display:grid; width:40%; background-color:#f3fffd; place-items: center; border-radius:3vw; border: solid 1vw hsl(170, 100%, 90%); margin:3vw">
+            <p style="font-size: 5vw; font-family: '站酷快乐体'">ai测谎仪</p>
+            <input id="input" style="width: 80%; height:5vh; font-size: 5vw; font-family: '站酷快乐体'" />
+            <div style="white-space: nowrap;"> <button onclick="callDeepSeek()" style="display: inline-block;">测谎</button>
+                <div id="output" style="display: inline-block; font-family: '站酷快乐体';"></div>
+            </div>
+
+            <script>
+                async function callDeepSeek() {
+                    const input = `判断用户输入是真话还是假话，只输出真或假，越严格越好。输入：${document.getElementById('input').value}`
+                    const output = document.getElementById('output');
+                    output.textContent = "思考中...";
+
+                    try {
+                        const response = await fetch("https://api.deepseek.com/chat/completions", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": "Bearer sk-dba6b0727a4949c58b36dbf369416914" // 此处暴露Key有风险！
+                            },
+                            body: JSON.stringify({
+                                model: "deepseek-chat",
+                                messages: [{ role: "user", content: input }],
+                                temperature: 0.7,
+                                max_tokens: 200
+                            })
+                        });
+
+                        const data = await response.json();
+                        output.textContent = data.choices[0].message.content;
+                    } catch (error) {
+                        output.textContent = "错误: " + error.message;
+                    }
+                }
+            </script>
+        </div>
 </body>
 
 </html>
