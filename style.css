@@ -11,8 +11,9 @@
     border: solid  #ffe0e0 3px;
     background-color: #ffeaea;
     height: 1cm;
-    flex: 1 1 120px;
-    min-width: 120px;
+    flex: 1 1 2cm;
+    min-width: 2cm;
     box-sizing: border-box;
     text-align: center;
 }
+
