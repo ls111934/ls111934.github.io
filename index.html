@@ -7,7 +7,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js">
     </script>
     <style>
-        /* ===== 全局 ===== */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -30,8 +29,6 @@
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
             padding: 28px 32px 36px;
         }
-
-        /* ===== 搜索区 ===== */
         .search-area {
             display: flex;
             gap: 12px;
@@ -84,8 +81,6 @@
             cursor: not-allowed;
             transform: none;
         }
-
-        /* ===== 状态栏 ===== */
         .status {
             margin-top: 16px;
             min-height: 26px;
@@ -118,8 +113,6 @@
         .status .ok {
             color: #16a34a;
         }
-
-        /* ===== 结果区 ===== */
         .result-area {
             margin-top: 20px;
             border-top: 1.5px solid #eaeef2;
@@ -164,8 +157,6 @@
             padding: 0 2px;
             border-radius: 2px;
         }
-
-        /* ===== 响应式 ===== */
         @media (max-width: 600px) {
             .app {
                 padding: 18px 16px 24px;
@@ -192,18 +183,13 @@
 <body>
 
     <div class="app">
-        <!-- 搜索区（无标题） -->
         <div class="search-area">
             <input type="text" id="usernameInput" placeholder="输入你的 B站用户名（模糊查找）" autocomplete="off" spellcheck="false">
             <button id="searchBtn">查找排名</button>
         </div>
-
-        <!-- 状态 -->
         <div class="status" id="statusArea">
             <span id="statusText">请输入用户名开始查找</span>
         </div>
-
-        <!-- 结果 -->
         <div class="result-area" id="resultArea">
             <div class="empty" id="emptyHint">暂无结果</div>
             <div id="resultList"></div>
@@ -212,17 +198,22 @@
 
     <script>
         // ================================================================
-        //  配置
+        //  配置（包含您的 SESSDATA）
         // ================================================================
-        const AID = "116951993026040"; // 目标视频 aid
-        const TARGET = "917813917813917813917813917813"; // 32 位目标串
+        const AID = "116951993026040";
+        const TARGET = "917813917813917813917813917813";
         const PAGE_SIZE = 20;
-        const REQUEST_DELAY = 500; // 毫秒
-        const SORT_TYPE = 0; // 0-热度，2-时间
+        const REQUEST_DELAY = 500;          // 毫秒
+        const SORT_TYPE = 0;
         const EXTRACT_REPLIES = true;
+        const SESSDATA = "dd4aed05%2C1800095667%2Cfa941%2A71CjB-qa2xsrWYIVWwkmYcA6oq3i3TeqmOF3AW7zAQ9B182251429N0HabrDivlyfil4YSVllkdjRlQjZTS1Bud2dLX2dJUjJWN0IyejJ0TEJjYzZHODRlVm1kWjBLUjRTa0RWalU4dkIzZGRoMzFiVkdGSEVEdmpvT1ctRnYyUnNCRjdLVlNvdzlRIIEC";
+
+        // ---------- 跨域代理 ----------
+        const USE_PROXY = true;
+        const PROXY_URL = 'https://api.allorigins.win/raw?url=';
 
         // ================================================================
-        //  工具：补齐目标串到 32 位
+        //  工具函数
         // ================================================================
         function normalizeTarget(s) {
             let t = s;
@@ -231,9 +222,6 @@
         }
         const FIXED_TARGET = normalizeTarget(TARGET);
 
-        // ================================================================
-        //  工具：计算公共前缀长度
-        // ================================================================
         function commonPrefixLen(a, b) {
             let i = 0;
             const n = Math.min(a.length, b.length);
@@ -241,28 +229,16 @@
             return i;
         }
 
-        // ================================================================
-        //  工具：时间格式化（UTC+8）
-        // ================================================================
         function formatTime(ts) {
             const d = new Date(ts * 1000);
             const pad = n => String(n).padStart(2, '0');
-            const y = d.getFullYear();
-            const m = pad(d.getMonth() + 1);
-            const day = pad(d.getDate());
-            const h = pad(d.getHours());
-            const min = pad(d.getMinutes());
-            const s = pad(d.getSeconds());
-            return `${y}-${m}-${day} ${h}:${min}:${s}`;
+            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
         }
 
-        // ================================================================
-        //  工具：延迟
-        // ================================================================
         const sleep = ms => new Promise(r => setTimeout(r, ms));
 
         // ================================================================
-        //  B站 API：获取一页评论
+        //  B站 API（通过代理 + 携带 SESSDATA）
         // ================================================================
         async function fetchCommentsPage(aid, page) {
             const url = "https://api.bilibili.com/x/v2/reply";
@@ -273,16 +249,21 @@
                 sort: String(SORT_TYPE),
                 ps: String(PAGE_SIZE),
             });
-            const fullUrl = url + "?" + params.toString();
+            const originalUrl = url + "?" + params.toString();
+            const finalUrl = USE_PROXY ? PROXY_URL + encodeURIComponent(originalUrl) : originalUrl;
 
-            const resp = await fetch(fullUrl, {
+            // 构造请求头，携带 Cookie（SESSDATA）
+            const headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Referer": "https://www.bilibili.com",
+                "Accept": "application/json, text/plain, */*",
+                "Cookie": `SESSDATA=${SESSDATA}`,
+            };
+
+            const resp = await fetch(finalUrl, {
                 method: "GET",
-                headers: {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                    "Referer": "https://www.bilibili.com",
-                    "Accept": "application/json, text/plain, */*",
-                },
-                credentials: "omit",
+                headers: headers,
+                credentials: "omit",   // 不自动发送其他 cookie
             });
 
             if (!resp.ok) {
@@ -299,7 +280,7 @@
         }
 
         // ================================================================
-        //  获取所有评论（主评论 + 一级回复）
+        //  获取全部评论
         // ================================================================
         async function fetchAllComments(aid, onProgress) {
             const all = [];
@@ -314,13 +295,10 @@
                     break;
                 }
 
-                // 提取主评论
                 for (const item of replies) {
                     const member = item.member;
                     if (!member) continue;
-                    const rawUid = member.mid;
-                    if (rawUid == null) continue;
-                    const uid = Number(rawUid);
+                    const uid = Number(member.mid);
                     if (!Number.isFinite(uid)) continue;
                     const uname = member.uname || "";
                     const ctime = item.ctime;
@@ -328,25 +306,17 @@
                         all.push({ uid, uname, ctime });
                     }
 
-                    // 一级回复
                     if (EXTRACT_REPLIES && item.replies) {
                         for (const sub of item.replies) {
                             const subMember = sub.member;
                             if (!subMember) continue;
-                            const rawSubUid = subMember.mid;
-                            if (rawSubUid == null) continue;
-                            const subUid = Number(rawSubUid);
+                            const subUid = Number(subMember.mid);
                             if (!Number.isFinite(subUid)) continue;
-                            const subUname = subMember.uname || "";
-                            const subCtime = sub.ctime;
-                            if (subCtime != null) {
-                                all.push({ uid: subUid, uname: subUname, ctime: subCtime });
-                            }
+                            all.push({ uid: subUid, uname: subMember.uname || "", ctime: sub.ctime });
                         }
                     }
                 }
 
-                // 计算总页数
                 if (totalPages === null && total > 0) {
                     totalPages = Math.ceil(total / PAGE_SIZE);
                 }
@@ -354,21 +324,16 @@
                     hasMore = false;
                 } else {
                     page++;
-                    if (onProgress) {
-                        onProgress(all.length, totalPages || '?');
-                    }
+                    if (onProgress) onProgress(all.length, totalPages || '?');
                     await sleep(REQUEST_DELAY);
                 }
             }
-
-            if (onProgress) {
-                onProgress(all.length, totalPages || '?', true);
-            }
+            if (onProgress) onProgress(all.length, totalPages || '?', true);
             return all;
         }
 
         // ================================================================
-        //  主逻辑
+        //  主搜索逻辑
         // ================================================================
         async function doSearch(username) {
             const input = username.trim();
@@ -378,22 +343,16 @@
                 return;
             }
 
-            // 禁用按钮
             const btn = document.getElementById('searchBtn');
             btn.disabled = true;
 
             try {
                 setStatus('正在获取评论数据 ...', 'loading');
-
-                // 1. 获取所有评论
                 let fetchedCount = 0;
                 const raw = await fetchAllComments(AID, (count, total, done) => {
                     fetchedCount = count;
-                    if (done) {
-                        setStatus(`已获取 ${count} 条评论，正在计算排名 ...`, 'loading');
-                    } else {
-                        setStatus(`正在获取评论 ... ${count} 条 (共约 ${total} 条)`, 'loading');
-                    }
+                    if (done) setStatus(`已获取 ${count} 条评论，正在计算排名 ...`, 'loading');
+                    else setStatus(`正在获取评论 ... ${count} 条 (共约 ${total} 条)`, 'loading');
                 });
 
                 if (!raw || raw.length === 0) {
@@ -403,10 +362,8 @@
                     return;
                 }
 
-                setStatus(`共获取 ${raw.length} 条评论记录，正在去重计算 ...`, 'loading');
-
-                // 2. 按 UID 去重，保留最早评论
-                const earliest = new Map(); // uid -> { uname, ctime }
+                // 按 UID 去重，保留最早评论
+                const earliest = new Map();
                 for (const item of raw) {
                     const existing = earliest.get(item.uid);
                     if (!existing || item.ctime < existing.ctime) {
@@ -414,28 +371,21 @@
                     }
                 }
 
-                // 3. 计算每个 UID 的 MD5 和公共前缀
+                // 计算 MD5 和公共前缀
                 const results = [];
                 for (const [uid, info] of earliest) {
-                    const uidStr = String(uid);
-                    const md5Hex = CryptoJS.MD5(uidStr).toString(CryptoJS.enc.Hex);
+                    const md5Hex = CryptoJS.MD5(String(uid)).toString(CryptoJS.enc.Hex);
                     const common = commonPrefixLen(md5Hex, FIXED_TARGET);
-                    results.push({
-                        uid,
-                        uname: info.uname,
-                        ctime: info.ctime,
-                        md5: md5Hex,
-                        common,
-                    });
+                    results.push({ uid, uname: info.uname, ctime: info.ctime, md5: md5Hex, common });
                 }
 
-                // 4. 排序：公共前缀降序，时间升序
+                // 排序
                 results.sort((a, b) => {
                     if (a.common !== b.common) return b.common - a.common;
                     return a.ctime - b.ctime;
                 });
 
-                // 5. 模糊查找用户名（不区分大小写）
+                // 模糊匹配用户名
                 const lowerInput = input.toLowerCase();
                 const matched = results.filter(r => r.uname.toLowerCase().includes(lowerInput));
 
@@ -446,19 +396,14 @@
                     return;
                 }
 
-                // 6. 构建结果（只显示排名、用户名、评论时间）
-                const total = results.length;
-                const display = matched.map(r => {
-                    const rank = results.indexOf(r) + 1;
-                    return {
-                        rank,
-                        total,
-                        uname: r.uname,
-                        ctime: r.ctime,
-                        // 高亮匹配部分
-                        highlight: input,
-                    };
-                });
+                // 构建显示结果（不包含 uid、md5）
+                const display = matched.map(r => ({
+                    rank: results.indexOf(r) + 1,
+                    total: results.length,
+                    uname: r.uname,
+                    ctime: r.ctime,
+                    highlight: input,
+                }));
 
                 setStatus(`找到 ${matched.length} 位匹配用户，排名如下`, 'ok');
                 showResult(display);
@@ -481,19 +426,14 @@
         const emptyHint = document.getElementById('emptyHint');
 
         function setStatus(msg, type) {
-            // type: '' | 'loading' | 'error' | 'ok'
             const spinner = statusArea.querySelector('.spinner');
             if (spinner) spinner.remove();
-
-            // 清除旧的状态类
             statusText.className = '';
-
             if (type === 'loading') {
                 const sp = document.createElement('span');
                 sp.className = 'spinner';
                 statusArea.prepend(sp);
                 statusText.textContent = msg;
-                statusText.className = '';
             } else if (type === 'error') {
                 statusText.textContent = '⚠ ' + msg;
                 statusText.className = 'err';
@@ -502,14 +442,11 @@
                 statusText.className = 'ok';
             } else {
                 statusText.textContent = msg;
-                statusText.className = '';
             }
         }
 
         function showResult(items) {
-            // 清空
             resultList.innerHTML = '';
-
             if (!items || items.length === 0) {
                 emptyHint.style.display = 'block';
                 return;
@@ -520,27 +457,21 @@
                 const div = document.createElement('div');
                 div.className = 'result-item';
 
-                // 排名
                 const rankSpan = document.createElement('span');
                 rankSpan.className = 'rank';
                 rankSpan.textContent = `#${item.rank} / ${item.total}`;
 
-                // 用户名（高亮匹配部分）
                 const unameSpan = document.createElement('span');
                 unameSpan.className = 'uname';
                 const raw = item.uname;
                 const hl = item.highlight || '';
                 if (hl && raw.toLowerCase().includes(hl.toLowerCase())) {
                     const idx = raw.toLowerCase().indexOf(hl.toLowerCase());
-                    const before = raw.slice(0, idx);
-                    const match = raw.slice(idx, idx + hl.length);
-                    const after = raw.slice(idx + hl.length);
-                    unameSpan.innerHTML = before + '<span class="highlight">' + match + '</span>' + after;
+                    unameSpan.innerHTML = raw.slice(0, idx) + '<span class="highlight">' + raw.slice(idx, idx + hl.length) + '</span>' + raw.slice(idx + hl.length);
                 } else {
                     unameSpan.textContent = raw;
                 }
 
-                // 评论时间
                 const timeSpan = document.createElement('span');
                 timeSpan.className = 'time';
                 timeSpan.textContent = formatTime(item.ctime);
@@ -559,23 +490,13 @@
             const input = document.getElementById('usernameInput');
             const btn = document.getElementById('searchBtn');
 
-            function handleSearch() {
-                doSearch(input.value);
-            }
+            function handleSearch() { doSearch(input.value); }
 
             btn.addEventListener('click', handleSearch);
-
             input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleSearch();
-                }
+                if (e.key === 'Enter') { e.preventDefault(); handleSearch(); }
             });
-
-            // 自动聚焦
             input.focus();
-
-            // 初始状态
             setStatus('请输入用户名开始查找', '');
             showResult([]);
         });
