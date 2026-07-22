@@ -7,6 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js">
     </script>
     <style>
+        /* ===== 样式与之前相同，略（已包含在下方完整代码中） ===== */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -178,6 +179,24 @@
                 white-space: normal;
             }
         }
+        /* 调试信息样式 */
+        .debug-info {
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: #f1f3f5;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #374151;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: none;
+            max-height: 200px;
+            overflow: auto;
+            border: 1px solid #e5e7eb;
+        }
+        .debug-info.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -194,23 +213,24 @@
             <div class="empty" id="emptyHint">暂无结果</div>
             <div id="resultList"></div>
         </div>
+        <!-- 调试信息（默认隐藏，出错时显示） -->
+        <div class="debug-info" id="debugInfo"></div>
     </div>
 
     <script>
         // ================================================================
-        //  配置（包含您的 SESSDATA）
+        //  配置
         // ================================================================
         const AID = "116951993026040";
         const TARGET = "917813917813917813917813917813";
         const PAGE_SIZE = 20;
-        const REQUEST_DELAY = 500;          // 毫秒
+        const REQUEST_DELAY = 500;
         const SORT_TYPE = 0;
         const EXTRACT_REPLIES = true;
         const SESSDATA = "dd4aed05%2C1800095667%2Cfa941%2A71CjB-qa2xsrWYIVWwkmYcA6oq3i3TeqmOF3AW7zAQ9B182251429N0HabrDivlyfil4YSVllkdjRlQjZTS1Bud2dLX2dJUjJWN0IyejJ0TEJjYzZHODRlVm1kWjBLUjRTa0RWalU4dkIzZGRoMzFiVkdGSEVEdmpvT1ctRnYyUnNCRjdLVlNvdzlRIIEC";
 
-        // ---------- 跨域代理 ----------
-        const USE_PROXY = true;
-        const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+        // ---------- 更换为更稳定的代理 ----------
+        const PROXY_URL = 'https://corsproxy.io/?';   // 该代理支持自定义请求头
 
         // ================================================================
         //  工具函数
@@ -238,7 +258,7 @@
         const sleep = ms => new Promise(r => setTimeout(r, ms));
 
         // ================================================================
-        //  B站 API（通过代理 + 携带 SESSDATA）
+        //  B站 API（通过代理，携带 SESSDATA）
         // ================================================================
         async function fetchCommentsPage(aid, page) {
             const url = "https://api.bilibili.com/x/v2/reply";
@@ -250,9 +270,10 @@
                 ps: String(PAGE_SIZE),
             });
             const originalUrl = url + "?" + params.toString();
-            const finalUrl = USE_PROXY ? PROXY_URL + encodeURIComponent(originalUrl) : originalUrl;
+            // 使用代理：直接将完整 URL 拼接到代理后面
+            const finalUrl = PROXY_URL + encodeURIComponent(originalUrl);
 
-            // 构造请求头，携带 Cookie（SESSDATA）
+            // 请求头：携带 Cookie
             const headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
                 "Referer": "https://www.bilibili.com",
@@ -263,15 +284,23 @@
             const resp = await fetch(finalUrl, {
                 method: "GET",
                 headers: headers,
-                credentials: "omit",   // 不自动发送其他 cookie
+                credentials: "omit",
             });
 
             if (!resp.ok) {
                 throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
             }
             const data = await resp.json();
+
+            // 详细调试：将响应数据存储到全局，便于查看
+            window._lastApiResponse = data;
+
             if (data.code !== 0) {
-                throw new Error(data.message || `API 错误 code=${data.code}`);
+                // 如果 code 为 -101 表示未登录或 SESSDATA 过期
+                if (data.code === -101) {
+                    throw new Error("SESSDATA 已过期，请重新获取并更新代码中的 SESSDATA");
+                }
+                throw new Error(`API 错误 (code=${data.code}): ${data.message || '未知错误'}`);
             }
             const pageInfo = data.data?.page || {};
             const total = pageInfo.total || 0;
@@ -280,7 +309,7 @@
         }
 
         // ================================================================
-        //  获取全部评论
+        //  获取全部评论（增加调试输出）
         // ================================================================
         async function fetchAllComments(aid, onProgress) {
             const all = [];
@@ -291,6 +320,11 @@
             while (hasMore) {
                 const { replies, total } = await fetchCommentsPage(aid, page);
                 if (!replies || replies.length === 0) {
+                    // 如果 total > 0 但 replies 为空，可能是 API 限制，尝试停止
+                    if (total > 0 && page === 1) {
+                        // 第一页就空，可能真的无评论或权限问题
+                        console.warn("第一页无评论，但 total=" + total);
+                    }
                     hasMore = false;
                     break;
                 }
@@ -340,11 +374,13 @@
             if (!input) {
                 setStatus("请输入用户名", '');
                 showResult([]);
+                hideDebug();
                 return;
             }
 
             const btn = document.getElementById('searchBtn');
             btn.disabled = true;
+            hideDebug();
 
             try {
                 setStatus('正在获取评论数据 ...', 'loading');
@@ -356,8 +392,10 @@
                 });
 
                 if (!raw || raw.length === 0) {
-                    setStatus('该视频暂无评论', 'error');
+                    setStatus('该视频暂无评论（或 SESSDATA 权限不足）', 'error');
                     showResult([]);
+                    // 显示调试信息
+                    showDebug("API 返回数据为空，请检查 SESSDATA 是否有效。\n最后一次响应：\n" + JSON.stringify(window._lastApiResponse, null, 2));
                     btn.disabled = false;
                     return;
                 }
@@ -407,11 +445,15 @@
 
                 setStatus(`找到 ${matched.length} 位匹配用户，排名如下`, 'ok');
                 showResult(display);
+                hideDebug();
 
             } catch (err) {
                 console.error(err);
                 setStatus(`出错：${err.message || '未知错误'}`, 'error');
                 showResult([]);
+                // 显示调试信息
+                const debugMsg = `错误详情：${err.message}\n\n最后一次 API 响应：\n${JSON.stringify(window._lastApiResponse || '无', null, 2)}`;
+                showDebug(debugMsg);
             } finally {
                 btn.disabled = false;
             }
@@ -424,6 +466,7 @@
         const statusArea = document.getElementById('statusArea');
         const resultList = document.getElementById('resultList');
         const emptyHint = document.getElementById('emptyHint');
+        const debugInfo = document.getElementById('debugInfo');
 
         function setStatus(msg, type) {
             const spinner = statusArea.querySelector('.spinner');
@@ -483,6 +526,16 @@
             }
         }
 
+        function showDebug(msg) {
+            debugInfo.textContent = msg;
+            debugInfo.classList.add('show');
+        }
+
+        function hideDebug() {
+            debugInfo.classList.remove('show');
+            debugInfo.textContent = '';
+        }
+
         // ================================================================
         //  事件绑定
         // ================================================================
@@ -499,6 +552,7 @@
             input.focus();
             setStatus('请输入用户名开始查找', '');
             showResult([]);
+            hideDebug();
         });
     </script>
 
