@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>B站评论排名查询器</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评论排名查询</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js">
+    </script>
     <style>
         /* ===== 全局 ===== */
         * {
@@ -12,1088 +14,572 @@
             padding: 0;
         }
         body {
-            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: #f4f6fa;
-            color: #1e2733;
-            padding: 20px;
+            font-family: 'Sarasa Mono SC', 'Consolas', 'Monaco', monospace;
+            background: #f6f8fa;
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
+            align-items: center;
+            padding: 20px;
         }
-        .container {
-            max-width: 1100px;
+        .app {
+            max-width: 860px;
             width: 100%;
             background: #ffffff;
             border-radius: 16px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
-            padding: 28px 30px 36px;
-            margin-top: 10px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            padding: 28px 32px 36px;
         }
-        h1 {
-            font-size: 26px;
-            font-weight: 700;
-            color: #00a1d6;
+
+        /* ===== 搜索区 ===== */
+        .search-area {
             display: flex;
+            gap: 12px;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 6px;
+            flex-wrap: wrap;
         }
-        h1 small {
-            font-size: 14px;
-            font-weight: 400;
-            color: #99a2aa;
-            margin-left: 8px;
+        .search-area input {
+            flex: 1;
+            min-width: 180px;
+            padding: 10px 16px;
+            font-size: 15px;
+            font-family: inherit;
+            border: 1.5px solid #d0d7de;
+            border-radius: 10px;
+            background: #f9fafb;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+            color: #1f2328;
         }
-        .subtitle {
-            color: #6d757f;
+        .search-area input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            background: #ffffff;
+        }
+        .search-area input::placeholder {
+            color: #8b949e;
             font-size: 14px;
-            border-left: 3px solid #00a1d6;
-            padding-left: 14px;
-            margin-bottom: 22px;
-            line-height: 1.6;
+        }
+        .search-area button {
+            padding: 10px 28px;
+            font-size: 15px;
+            font-family: inherit;
+            font-weight: 500;
+            border: none;
+            border-radius: 10px;
+            background: #3b82f6;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+        .search-area button:hover {
+            background: #2563eb;
+        }
+        .search-area button:active {
+            transform: scale(0.96);
+        }
+        .search-area button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
         }
 
         /* ===== 状态栏 ===== */
-        .status-bar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 12px 20px;
-            background: #f0f4f9;
-            border-radius: 10px;
-            padding: 10px 18px;
-            margin-bottom: 18px;
+        .status {
+            margin-top: 16px;
+            min-height: 26px;
             font-size: 14px;
-            color: #2e3a47;
-            min-height: 48px;
+            color: #57606a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
-        .status-bar .spinner {
+        .status .spinner {
             display: inline-block;
             width: 18px;
             height: 18px;
-            border: 2.5px solid #d0d7e0;
-            border-top-color: #00a1d6;
+            border: 2.5px solid #e5e7eb;
+            border-top-color: #3b82f6;
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            flex-shrink: 0;
         }
         @keyframes spin {
             to {
                 transform: rotate(360deg);
             }
         }
-        .status-bar .stat {
-            font-weight: 600;
-            color: #00a1d6;
+        .status .err {
+            color: #dc2626;
         }
-        .status-bar .stat-num {
-            font-weight: 700;
-            font-size: 16px;
-        }
-        .status-bar .msg {
-            flex: 1;
-            min-width: 120px;
-        }
-        .status-bar .err {
-            color: #e74c3c;
-            font-weight: 500;
-        }
-        .status-bar .btn-retry {
-            background: #00a1d6;
-            border: none;
-            color: #fff;
-            padding: 4px 16px;
-            border-radius: 6px;
-            font-size: 13px;
-            cursor: pointer;
-            height: 30px;
-            transition: 0.2s;
-        }
-        .status-bar .btn-retry:hover {
-            background: #0088b3;
-        }
-        .status-bar .proxy-badge {
-            background: #e9edf2;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            color: #4a535e;
+        .status .ok {
+            color: #16a34a;
         }
 
-        /* ===== 搜索区 ===== */
-        .search-area {
+        /* ===== 结果区 ===== */
+        .result-area {
+            margin-top: 20px;
+            border-top: 1.5px solid #eaeef2;
+            padding-top: 18px;
+        }
+        .result-area .empty {
+            color: #8b949e;
+            font-size: 14px;
+            text-align: center;
+            padding: 14px 0 6px;
+        }
+        .result-item {
+            font-size: 15px;
+            line-height: 1.7;
+            padding: 6px 0;
+            border-bottom: 1px dashed #eaeef2;
             display: flex;
             flex-wrap: wrap;
-            gap: 12px 16px;
-            margin-bottom: 18px;
-            align-items: center;
-            padding: 14px 18px;
-            background: #fafbff;
-            border-radius: 12px;
-            border: 1px solid #e9edf2;
+            align-items: baseline;
+            gap: 4px 16px;
         }
-        .search-area label {
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .result-item .rank {
             font-weight: 600;
-            font-size: 15px;
-            color: #2e3a47;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            color: #1f2328;
+            min-width: 70px;
         }
-        .search-area input {
-            flex: 1;
-            min-width: 160px;
-            padding: 8px 14px;
-            border: 1px solid #d0d7e0;
-            border-radius: 8px;
-            font-size: 15px;
-            outline: none;
-            transition: 0.2s;
-        }
-        .search-area input:focus {
-            border-color: #00a1d6;
-            box-shadow: 0 0 0 3px rgba(0, 161, 214, 0.12);
-        }
-        .search-area .btn {
-            padding: 6px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            background: #00a1d6;
-            color: #fff;
-            height: 38px;
-            transition: 0.2s;
-        }
-        .search-area .btn:hover {
-            background: #0088b3;
-        }
-        .search-area .match-info {
-            font-size: 14px;
-            color: #4a535e;
-            background: #eef2f7;
-            padding: 4px 14px;
-            border-radius: 20px;
-            white-space: nowrap;
-        }
-        .search-area .match-info em {
-            font-style: normal;
-            font-weight: 700;
-            color: #00a1d6;
-        }
-        .search-area .rank-info {
-            font-size: 14px;
-            color: #4a535e;
-            background: #eef2f7;
-            padding: 4px 14px;
-            border-radius: 20px;
-            white-space: nowrap;
-            display: none;
-        }
-        .search-area .rank-info em {
-            font-style: normal;
-            font-weight: 700;
-            color: #ff6b35;
-        }
-
-        /* ===== 表格 ===== */
-        .table-wrap {
-            overflow-x: auto;
-            border-radius: 10px;
-            border: 1px solid #e9edf2;
-            background: #ffffff;
-        }
-        .rank-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-            font-family: 'Consolas', 'Monaco', 'Menlo', monospace;
-        }
-        .rank-table thead {
-            background: #f0f4f9;
-            border-bottom: 2px solid #dce2ea;
-        }
-        .rank-table th {
-            padding: 10px 12px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 13px;
-            color: #4a535e;
-            letter-spacing: 0.3px;
-            white-space: nowrap;
-        }
-        .rank-table td {
-            padding: 9px 12px;
-            border-bottom: 1px solid #edf1f6;
-            vertical-align: middle;
-        }
-        .rank-table tbody tr:hover {
-            background: #f6f9fe;
-        }
-        .rank-table .highlight {
-            background: #fff7e6 !important;
-            border-left: 3px solid #ffa726;
-        }
-        .rank-table .highlight td:first-child {
-            padding-left: 9px;
-        }
-        .rank-table .col-rank {
-            text-align: right;
-            font-weight: 600;
-            color: #2e3a47;
-            width: 60px;
-        }
-        .rank-table .col-time {
-            white-space: nowrap;
-            color: #5a6672;
-            font-size: 13px;
-            width: 150px;
-        }
-        .rank-table .col-md5 {
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 13px;
-            letter-spacing: 0.5px;
-            color: #1a2633;
+        .result-item .uname {
+            color: #1f2328;
             word-break: break-all;
-            width: 200px;
         }
-        .rank-table .col-uid {
-            text-align: right;
+        .result-item .time {
+            color: #6b7785;
             font-size: 13px;
-            color: #4a535e;
-            width: 100px;
-        }
-        .rank-table .col-name {
-            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            font-weight: 500;
-            color: #1a2633;
-            max-width: 160px;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            margin-left: auto;
             white-space: nowrap;
         }
-        .rank-table .rank-badge {
-            display: inline-block;
-            background: #00a1d6;
-            color: #fff;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 0 8px;
-            border-radius: 12px;
-            line-height: 20px;
-            min-width: 28px;
-            text-align: center;
-        }
-        .rank-table .rank-badge.top1 {
-            background: #ff6b35;
-        }
-        .rank-table .rank-badge.top2 {
-            background: #ff9f43;
-        }
-        .rank-table .rank-badge.top3 {
-            background: #feca57;
-            color: #2e3a47;
-        }
-
-        /* ===== 分页 ===== */
-        .pagination {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 4px 4px;
-            gap: 10px 16px;
-            font-size: 14px;
-            color: #4a535e;
-        }
-        .pagination .page-btns {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-        .pagination .page-btns button {
-            padding: 4px 14px;
-            border: 1px solid #d0d7e0;
-            border-radius: 6px;
-            background: #fff;
-            cursor: pointer;
-            font-size: 13px;
-            transition: 0.15s;
-            color: #2e3a47;
-        }
-        .pagination .page-btns button:hover:not(:disabled) {
-            background: #f0f4f9;
-            border-color: #b0bcc9;
-        }
-        .pagination .page-btns button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-        .pagination .page-info {
-            font-weight: 500;
-        }
-
-        /* ===== 空状态 ===== */
-        .empty-state {
-            text-align: center;
-            padding: 50px 20px;
-            color: #99a2aa;
-        }
-        .empty-state .icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
-        .empty-state p {
-            font-size: 15px;
+        .result-item .highlight {
+            background: #fef08a;
+            padding: 0 2px;
+            border-radius: 2px;
         }
 
         /* ===== 响应式 ===== */
-        @media (max-width: 720px) {
-            .container {
-                padding: 16px 14px 24px;
+        @media (max-width: 600px) {
+            .app {
+                padding: 18px 16px 24px;
             }
-            .search-area {
-                flex-direction: column;
-                align-items: stretch;
+            .search-area input {
+                min-width: 120px;
+                font-size: 14px;
             }
-            .search-area .match-info,
-            .search-area .rank-info {
-                align-self: flex-start;
+            .search-area button {
+                padding: 10px 18px;
+                font-size: 14px;
             }
-            .rank-table .col-md5 {
-                width: 120px;
+            .result-item {
+                font-size: 14px;
+                gap: 2px 12px;
+            }
+            .result-item .time {
                 font-size: 12px;
-            }
-            .rank-table .col-time {
-                width: 120px;
-                font-size: 12px;
-            }
-            .rank-table .col-uid {
-                width: 70px;
-                font-size: 12px;
-            }
-            .rank-table td,
-            .rank-table th {
-                padding: 6px 8px;
-                font-size: 12px;
-            }
-            h1 {
-                font-size: 20px;
-            }
-            .status-bar {
-                font-size: 13px;
-                padding: 8px 14px;
-            }
-            .pagination {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 6px;
-            }
-            .pagination .page-btns {
-                justify-content: center;
-            }
-        }
-        @media (max-width: 480px) {
-            .rank-table .col-md5 {
-                width: 80px;
-                font-size: 11px;
-            }
-            .rank-table .col-time {
-                width: 90px;
-                font-size: 11px;
-            }
-            .rank-table .col-uid {
-                width: 60px;
-                font-size: 11px;
-            }
-            .rank-table .col-name {
-                max-width: 80px;
+                white-space: normal;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container" id="app">
-        <h1>
-            🎯 B站评论排名查询器
-            <small>固定 AID / 目标串</small>
-        </h1>
-        <div class="subtitle">
-            输入你的 B站用户名，快速查找你在视频评论者中的排名。<br />
-            排名依据：UID 的 MD5 值与目标串的公共前缀长度（降序），相同前缀时取最早评论者优先。
-        </div>
 
-        <!-- 状态栏 -->
-        <div class="status-bar" id="statusBar">
-            <span class="spinner" id="spinner" style="display:none;"></span>
-            <span class="msg" id="statusMsg">⏳ 正在加载评论数据…</span>
-            <span id="statusStats" style="display:none;">
-                👥 总人数: <span class="stat-num" id="totalCount">0</span>
-                &nbsp;|&nbsp; 🕒 耗时: <span class="stat" id="loadTime">0</span>s
-            </span>
-            <span class="proxy-badge" id="proxyBadge">🌐 代理</span>
-            <button class="btn-retry" id="retryBtn" style="display:none;">🔄 重试</button>
-        </div>
-
-        <!-- 搜索区 -->
+    <div class="app">
+        <!-- 搜索区（无标题） -->
         <div class="search-area">
-            <label for="searchInput">🔍 用户名</label>
-            <input type="text" id="searchInput" placeholder="输入用户名进行模糊查找…" />
-            <button class="btn" id="searchBtn">搜索</button>
-            <span class="match-info">共 <em id="matchTotal">0</em> 位匹配</span>
-            <span class="rank-info" id="rankInfo">🏅 你的排名: <em id="rankDisplay">-</em></span>
+            <input type="text" id="usernameInput" placeholder="输入你的 B站用户名（模糊查找）" autocomplete="off" spellcheck="false">
+            <button id="searchBtn">查找排名</button>
         </div>
 
-        <!-- 表格 -->
-        <div class="table-wrap" id="tableWrap">
-            <table class="rank-table" id="rankTable">
-                <thead>
-                    <tr>
-                        <th class="col-rank">#</th>
-                        <th class="col-time">评论时间</th>
-                        <th class="col-md5">UID MD5</th>
-                        <th class="col-uid">UID</th>
-                        <th class="col-name">用户名</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <tr>
-                        <td colspan="5" class="empty-state">
-                            <div class="icon">⏳</div>
-                            <p>正在加载数据，请稍候…</p>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- 状态 -->
+        <div class="status" id="statusArea">
+            <span id="statusText">请输入用户名开始查找</span>
         </div>
 
-        <!-- 分页 -->
-        <div class="pagination" id="pagination">
-            <span class="page-info" id="pageInfo">第 1 / 1 页</span>
-            <div class="page-btns">
-                <button id="prevPage" disabled>◀ 上一页</button>
-                <span id="pageJumpInfo" style="font-weight:400;color:#6d757f;">1</span>
-                <button id="nextPage" disabled>下一页 ▶</button>
-            </div>
+        <!-- 结果 -->
+        <div class="result-area" id="resultArea">
+            <div class="empty" id="emptyHint">暂无结果</div>
+            <div id="resultList"></div>
         </div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- MD5 实现 (公共域)                                             -->
-    <!-- ============================================================ -->
     <script>
-        function md5(string) {
-            function md5cycle(x, k) {
-                var a = x[0],
-                    b = x[1],
-                    c = x[2],
-                    d = x[3];
-                a = ff(a, b, c, d, k[0], 7, -680876936);
-                d = ff(d, a, b, c, k[1], 12, -389564586);
-                c = ff(c, d, a, b, k[2], 17, 606105819);
-                b = ff(b, c, d, a, k[3], 22, -1044525330);
-                a = ff(a, b, c, d, k[4], 7, -176418897);
-                d = ff(d, a, b, c, k[5], 12, 1200080426);
-                c = ff(c, d, a, b, k[6], 17, -1473231341);
-                b = ff(b, c, d, a, k[7], 22, -45705983);
-                a = ff(a, b, c, d, k[8], 7, 1770035416);
-                d = ff(d, a, b, c, k[9], 12, -1958414417);
-                c = ff(c, d, a, b, k[10], 17, -42063);
-                b = ff(b, c, d, a, k[11], 22, -1990404162);
-                a = ff(a, b, c, d, k[12], 7, 1804603682);
-                d = ff(d, a, b, c, k[13], 12, -40341101);
-                c = ff(c, d, a, b, k[14], 17, -1502002290);
-                b = ff(b, c, d, a, k[15], 22, 1236535329);
-                a = gg(a, b, c, d, k[1], 5, -165796510);
-                d = gg(d, a, b, c, k[6], 9, -1069501632);
-                c = gg(c, d, a, b, k[11], 14, 643717713);
-                b = gg(b, c, d, a, k[0], 20, -373897302);
-                a = gg(a, b, c, d, k[5], 5, -701558691);
-                d = gg(d, a, b, c, k[10], 9, 38016083);
-                c = gg(c, d, a, b, k[15], 14, -660478335);
-                b = gg(b, c, d, a, k[4], 20, -405537848);
-                a = gg(a, b, c, d, k[9], 5, 568446438);
-                d = gg(d, a, b, c, k[14], 9, -1019803690);
-                c = gg(c, d, a, b, k[3], 14, -187363961);
-                b = gg(b, c, d, a, k[8], 20, 1163531501);
-                a = gg(a, b, c, d, k[13], 5, -1444681467);
-                d = gg(d, a, b, c, k[2], 9, -51403784);
-                c = gg(c, d, a, b, k[7], 14, 1735328473);
-                b = gg(b, c, d, a, k[12], 20, -1926607734);
-                a = hh(a, b, c, d, k[5], 4, -378558);
-                d = hh(d, a, b, c, k[8], 11, -2022574463);
-                c = hh(c, d, a, b, k[11], 16, 1839030562);
-                b = hh(b, c, d, a, k[14], 23, -35309556);
-                a = hh(a, b, c, d, k[1], 4, -1530992060);
-                d = hh(d, a, b, c, k[4], 11, 1272893353);
-                c = hh(c, d, a, b, k[7], 16, -155497632);
-                b = hh(b, c, d, a, k[10], 23, -1094730640);
-                a = hh(a, b, c, d, k[13], 4, 681279174);
-                d = hh(d, a, b, c, k[0], 11, -358537222);
-                c = hh(c, d, a, b, k[3], 16, -722521979);
-                b = hh(b, c, d, a, k[6], 23, 76029189);
-                a = hh(a, b, c, d, k[9], 4, -640364487);
-                d = hh(d, a, b, c, k[12], 11, -421815835);
-                c = hh(c, d, a, b, k[15], 16, 530742520);
-                b = hh(b, c, d, a, k[2], 23, -995338651);
-                a = ii(a, b, c, d, k[0], 6, -198630844);
-                d = ii(d, a, b, c, k[7], 10, 1126891415);
-                c = ii(c, d, a, b, k[14], 15, -1416354905);
-                b = ii(b, c, d, a, k[5], 21, -57434055);
-                a = ii(a, b, c, d, k[12], 6, 1700485571);
-                d = ii(d, a, b, c, k[3], 10, -1894986606);
-                c = ii(c, d, a, b, k[10], 15, -1051523);
-                b = ii(b, c, d, a, k[1], 21, -2054922799);
-                a = ii(a, b, c, d, k[8], 6, 1873313359);
-                d = ii(d, a, b, c, k[15], 10, -30611744);
-                c = ii(c, d, a, b, k[6], 15, -1560198380);
-                b = ii(b, c, d, a, k[13], 21, 1309151649);
-                a = ii(a, b, c, d, k[4], 6, -145523070);
-                d = ii(d, a, b, c, k[11], 10, -1120210379);
-                c = ii(c, d, a, b, k[2], 15, 718787259);
-                b = ii(b, c, d, a, k[9], 21, -343485551);
-                x[0] = add32(a, x[0]);
-                x[1] = add32(b, x[1]);
-                x[2] = add32(c, x[2]);
-                x[3] = add32(d, x[3]);
-            }
+        // ================================================================
+        //  配置
+        // ================================================================
+        const AID = "116951993026040"; // 目标视频 aid
+        const TARGET = "917813917813917813917813917813"; // 32 位目标串
+        const PAGE_SIZE = 20;
+        const REQUEST_DELAY = 500; // 毫秒
+        const SORT_TYPE = 0; // 0-热度，2-时间
+        const EXTRACT_REPLIES = true;
 
-            function cmn(q, a, b, x, s, t) {
-                a = add32(add32(a, q), add32(x, t));
-                return add32((a << s) | (a >>> (32 - s)), b);
-            }
-            function ff(a, b, c, d, x, s, t) { return cmn((b & c) | ((~b) & d), a, b, x, s, t); }
-            function gg(a, b, c, d, x, s, t) { return cmn((b & d) | (c & (~d)), a, b, x, s, t); }
-            function hh(a, b, c, d, x, s, t) { return cmn(b ^ c ^ d, a, b, x, s, t); }
-            function ii(a, b, c, d, x, s, t) { return cmn(c ^ (b | (~d)), a, b, x, s, t); }
-
-            function md5blk(s) {
-                var md5blks = [],
-                    i;
-                for (i = 0; i < 64; i += 4) {
-                    md5blks[i >> 2] = s.charCodeAt(i) + (s.charCodeAt(i + 1) << 8) +
-                        (s.charCodeAt(i + 2) << 16) + (s.charCodeAt(i + 3) << 24);
-                }
-                return md5blks;
-            }
-
-            function md5blk_array(a) {
-                var md5blks = [],
-                    i;
-                for (i = 0; i < 64; i += 4) {
-                    md5blks[i >> 2] = a[i] + (a[i + 1] << 8) +
-                        (a[i + 2] << 16) + (a[i + 3] << 24);
-                }
-                return md5blks;
-            }
-
-            function md51(s) {
-                var n = s.length,
-                    state = [1732584193, -271733879, -1732584194, 271733878],
-                    i,
-                    length,
-                    tail,
-                    tmp,
-                    lo,
-                    hi;
-                for (i = 64; i <= n; i += 64) {
-                    md5cycle(state, md5blk(s.substring(i - 64, i)));
-                }
-                s = s.substring(i - 64);
-                length = s.length;
-                tail = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-                for (i = 0; i < length; i += 1) {
-                    tail[i >> 2] |= s.charCodeAt(i) << ((i % 4) << 3);
-                }
-                tail[i >> 2] |= 0x80 << ((i % 4) << 3);
-                if (i > 55) {
-                    md5cycle(state, tail);
-                    for (i = 0; i < 16; i += 1) {
-                        tail[i] = 0;
-                    }
-                }
-                lo = (n * 8) & 0xffffffff;
-                hi = ((n * 8) & 0xffffffff00000000) >>> 0;
-                tail[14] = lo;
-                tail[15] = hi;
-                md5cycle(state, tail);
-                return state;
-            }
-
-            function md51_array(a) {
-                var n = a.length,
-                    state = [1732584193, -271733879, -1732584194, 271733878],
-                    i,
-                    length,
-                    tail,
-                    tmp,
-                    lo,
-                    hi;
-                for (i = 64; i <= n; i += 64) {
-                    md5cycle(state, md5blk_array(a.subarray(i - 64, i)));
-                }
-                a = a.subarray(i - 64);
-                length = a.length;
-                tail = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-                for (i = 0; i < length; i += 1) {
-                    tail[i >> 2] |= a[i] << ((i % 4) << 3);
-                }
-                tail[i >> 2] |= 0x80 << ((i % 4) << 3);
-                if (i > 55) {
-                    md5cycle(state, tail);
-                    for (i = 0; i < 16; i += 1) {
-                        tail[i] = 0;
-                    }
-                }
-                lo = (n * 8) & 0xffffffff;
-                hi = ((n * 8) & 0xffffffff00000000) >>> 0;
-                tail[14] = lo;
-                tail[15] = hi;
-                md5cycle(state, tail);
-                return state;
-            }
-
-            function add32(a, b) { return (a + b) & 0xffffffff; }
-
-            function hex(x) {
-                var hex_tab = '0123456789abcdef',
-                    str = '',
-                    i;
-                for (i = 0; i < 4; i += 1) {
-                    str += hex_tab.charAt((x >> (i * 8 + 4)) & 0x0f) +
-                        hex_tab.charAt((x >> (i * 8)) & 0x0f);
-                }
-                return str;
-            }
-
-            function md5_str(s) { return md51(s).map(hex).join(''); }
-
-            if (typeof string === 'string') {
-                return md5_str(string);
-            } else {
-                return md5_str(String(string));
-            }
+        // ================================================================
+        //  工具：补齐目标串到 32 位
+        // ================================================================
+        function normalizeTarget(s) {
+            let t = s;
+            while (t.length < 32) t += "917813";
+            return t.slice(0, 32);
         }
-    </script>
+        const FIXED_TARGET = normalizeTarget(TARGET);
 
-    <!-- ============================================================ -->
-    <!-- 主逻辑                                                       -->
-    <!-- ============================================================ -->
-    <script>
-        (function() {
-            'use strict';
+        // ================================================================
+        //  工具：计算公共前缀长度
+        // ================================================================
+        function commonPrefixLen(a, b) {
+            let i = 0;
+            const n = Math.min(a.length, b.length);
+            while (i < n && a[i] === b[i]) i++;
+            return i;
+        }
 
-            // -------- 写死的配置 --------
-            const AID = "116951993026040";
-            const TARGET = "917813917813917813917813917813";
-            const SESSDATA = ""; // 可留空，或填入有效 SESSDATA（代理模式下无效）
-            // 是否使用 CORS 代理（解决跨域）
-            const USE_PROXY = true;
+        // ================================================================
+        //  工具：时间格式化（UTC+8）
+        // ================================================================
+        function formatTime(ts) {
+            const d = new Date(ts * 1000);
+            const pad = n => String(n).padStart(2, '0');
+            const y = d.getFullYear();
+            const m = pad(d.getMonth() + 1);
+            const day = pad(d.getDate());
+            const h = pad(d.getHours());
+            const min = pad(d.getMinutes());
+            const s = pad(d.getSeconds());
+            return `${y}-${m}-${day} ${h}:${min}:${s}`;
+        }
 
-            // -------- DOM 引用 --------
-            const statusMsg = document.getElementById('statusMsg');
-            const statusStats = document.getElementById('statusStats');
-            const totalCount = document.getElementById('totalCount');
-            const loadTime = document.getElementById('loadTime');
-            const spinner = document.getElementById('spinner');
-            const retryBtn = document.getElementById('retryBtn');
-            const proxyBadge = document.getElementById('proxyBadge');
-            const tableBody = document.getElementById('tableBody');
-            const searchInput = document.getElementById('searchInput');
-            const searchBtn = document.getElementById('searchBtn');
-            const matchTotal = document.getElementById('matchTotal');
-            const rankInfo = document.getElementById('rankInfo');
-            const rankDisplay = document.getElementById('rankDisplay');
-            const prevPage = document.getElementById('prevPage');
-            const nextPage = document.getElementById('nextPage');
-            const pageInfo = document.getElementById('pageInfo');
-            const pageJumpInfo = document.getElementById('pageJumpInfo');
+        // ================================================================
+        //  工具：延迟
+        // ================================================================
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-            // 显示代理状态
-            if (USE_PROXY) {
-                proxyBadge.textContent = '🌐 代理已启用';
-                proxyBadge.style.background = '#d4edda';
-            } else {
-                proxyBadge.textContent = '🔓 直连 (需CORS)';
-                proxyBadge.style.background = '#f8d7da';
+        // ================================================================
+        //  B站 API：获取一页评论
+        // ================================================================
+        async function fetchCommentsPage(aid, page) {
+            const url = "https://api.bilibili.com/x/v2/reply";
+            const params = new URLSearchParams({
+                oid: aid,
+                type: "1",
+                pn: String(page),
+                sort: String(SORT_TYPE),
+                ps: String(PAGE_SIZE),
+            });
+            const fullUrl = url + "?" + params.toString();
+
+            const resp = await fetch(fullUrl, {
+                method: "GET",
+                headers: {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Referer": "https://www.bilibili.com",
+                    "Accept": "application/json, text/plain, */*",
+                },
+                credentials: "omit",
+            });
+
+            if (!resp.ok) {
+                throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
             }
-
-            // -------- 状态 --------
-            let allData = [];
-            let filteredData = [];
-            let currentPage = 1;
-            const PAGE_SIZE = 20;
-            let isLoading = false;
-            let loadStartTime = 0;
-
-            // -------- 工具 --------
-            function formatTime(ts) {
-                const d = new Date(ts * 1000);
-                const pad = n => String(n).padStart(2, '0');
-                return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+            const data = await resp.json();
+            if (data.code !== 0) {
+                throw new Error(data.message || `API 错误 code=${data.code}`);
             }
+            const pageInfo = data.data?.page || {};
+            const total = pageInfo.total || 0;
+            const replies = data.data?.replies || [];
+            return { replies, total };
+        }
 
-            function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+        // ================================================================
+        //  获取所有评论（主评论 + 一级回复）
+        // ================================================================
+        async function fetchAllComments(aid, onProgress) {
+            const all = [];
+            let page = 1;
+            let totalPages = null;
+            let hasMore = true;
 
-            function escapeHtml(str) {
-                const div = document.createElement('div');
-                div.textContent = str;
-                return div.innerHTML;
-            }
+            while (hasMore) {
+                const { replies, total } = await fetchCommentsPage(aid, page);
+                if (!replies || replies.length === 0) {
+                    hasMore = false;
+                    break;
+                }
 
-            // -------- 获取评论 (翻页) --------
-            async function fetchComments(aid, sessdata, onProgress) {
-                const allComments = [];
-                let page = 1;
-                const ps = 20;
-                let totalPages = null;
-                let totalItems = 0;
-
-                while (true) {
-                    // 构建原始 B站 API URL
-                    const params = new URLSearchParams({
-                        oid: aid,
-                        type: '1',
-                        pn: String(page),
-                        sort: '0',
-                        ps: String(ps),
-                    });
-                    let url = "https://api.bilibili.com/x/v2/reply?" + params.toString();
-
-                    // 如果启用代理，则通过代理转发
-                    if (USE_PROXY) {
-                        // 使用 allorigins.win 作为 CORS 代理
-                        url = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+                // 提取主评论
+                for (const item of replies) {
+                    const member = item.member;
+                    if (!member) continue;
+                    const rawUid = member.mid;
+                    if (rawUid == null) continue;
+                    const uid = Number(rawUid);
+                    if (!Number.isFinite(uid)) continue;
+                    const uname = member.uname || "";
+                    const ctime = item.ctime;
+                    if (ctime != null) {
+                        all.push({ uid, uname, ctime });
                     }
 
-                    const headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                        'Referer': 'https://www.bilibili.com/',
-                    };
-                    // 代理模式下无法携带 Cookie，且 SESSDATA 为空，忽略
-                    const fetchOpts = { headers };
-
-                    let resp, data;
-                    try {
-                        resp = await fetch(url, fetchOpts);
-                        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                        data = await resp.json();
-                    } catch (e) {
-                        throw new Error(`请求失败: ${e.message}`);
-                    }
-
-                    if (data.code !== 0) {
-                        throw new Error(`API 错误: ${data.message || '未知错误'}`);
-                    }
-
-                    const pageInfo = data.data?.page || {};
-                    const total = pageInfo.total || 0;
-                    if (totalPages === null && total > 0) {
-                        totalPages = Math.ceil(total / ps);
-                        totalItems = total;
-                    }
-                    const replies = data.data?.replies || [];
-                    if (!replies.length) break;
-
-                    for (const item of replies) {
-                        const member = item.member || {};
-                        const rawUid = member.mid;
-                        if (rawUid === undefined || rawUid === null) continue;
-                        const uid = Number(rawUid);
-                        if (isNaN(uid)) continue;
-                        const uname = member.uname || '';
-                        const ctime = item.ctime;
-                        if (ctime !== undefined && ctime !== null) {
-                            allComments.push({ uid, uname, ctime });
-                        }
-                        const subReplies = item.replies;
-                        if (subReplies && Array.isArray(subReplies)) {
-                            for (const sub of subReplies) {
-                                const subMember = sub.member || {};
-                                const rawSubUid = subMember.mid;
-                                if (rawSubUid === undefined || rawSubUid === null) continue;
-                                const subUid = Number(rawSubUid);
-                                if (isNaN(subUid)) continue;
-                                const subUname = subMember.uname || '';
-                                const subCtime = sub.ctime;
-                                if (subCtime !== undefined && subCtime !== null) {
-                                    allComments.push({ uid: subUid, uname: subUname, ctime: subCtime });
-                                }
+                    // 一级回复
+                    if (EXTRACT_REPLIES && item.replies) {
+                        for (const sub of item.replies) {
+                            const subMember = sub.member;
+                            if (!subMember) continue;
+                            const rawSubUid = subMember.mid;
+                            if (rawSubUid == null) continue;
+                            const subUid = Number(rawSubUid);
+                            if (!Number.isFinite(subUid)) continue;
+                            const subUname = subMember.uname || "";
+                            const subCtime = sub.ctime;
+                            if (subCtime != null) {
+                                all.push({ uid: subUid, uname: subUname, ctime: subCtime });
                             }
                         }
                     }
-
-                    if (onProgress) {
-                        onProgress(page, allComments.length, totalItems);
-                    }
-
-                    if (totalPages !== null && page >= totalPages) break;
-                    page += 1;
-                    await sleep(500);
                 }
-                return allComments;
+
+                // 计算总页数
+                if (totalPages === null && total > 0) {
+                    totalPages = Math.ceil(total / PAGE_SIZE);
+                }
+                if (totalPages !== null && page >= totalPages) {
+                    hasMore = false;
+                } else {
+                    page++;
+                    if (onProgress) {
+                        onProgress(all.length, totalPages || '?');
+                    }
+                    await sleep(REQUEST_DELAY);
+                }
             }
 
-            // -------- 计算排名 --------
-            function computeRanking(rawComments, targetStr) {
-                const earliest = new Map();
-                for (const { uid, uname, ctime } of rawComments) {
-                    if (!earliest.has(uid) || ctime < earliest.get(uid).ctime) {
-                        earliest.set(uid, { uname, ctime });
+            if (onProgress) {
+                onProgress(all.length, totalPages || '?', true);
+            }
+            return all;
+        }
+
+        // ================================================================
+        //  主逻辑
+        // ================================================================
+        async function doSearch(username) {
+            const input = username.trim();
+            if (!input) {
+                setStatus("请输入用户名", '');
+                showResult([]);
+                return;
+            }
+
+            // 禁用按钮
+            const btn = document.getElementById('searchBtn');
+            btn.disabled = true;
+
+            try {
+                setStatus('正在获取评论数据 ...', 'loading');
+
+                // 1. 获取所有评论
+                let fetchedCount = 0;
+                const raw = await fetchAllComments(AID, (count, total, done) => {
+                    fetchedCount = count;
+                    if (done) {
+                        setStatus(`已获取 ${count} 条评论，正在计算排名 ...`, 'loading');
+                    } else {
+                        setStatus(`正在获取评论 ... ${count} 条 (共约 ${total} 条)`, 'loading');
+                    }
+                });
+
+                if (!raw || raw.length === 0) {
+                    setStatus('该视频暂无评论', 'error');
+                    showResult([]);
+                    btn.disabled = false;
+                    return;
+                }
+
+                setStatus(`共获取 ${raw.length} 条评论记录，正在去重计算 ...`, 'loading');
+
+                // 2. 按 UID 去重，保留最早评论
+                const earliest = new Map(); // uid -> { uname, ctime }
+                for (const item of raw) {
+                    const existing = earliest.get(item.uid);
+                    if (!existing || item.ctime < existing.ctime) {
+                        earliest.set(item.uid, { uname: item.uname, ctime: item.ctime });
                     }
                 }
 
-                let target = targetStr;
-                while (target.length < 32) target += '917813';
-                target = target.slice(0, 32);
-
+                // 3. 计算每个 UID 的 MD5 和公共前缀
                 const results = [];
-                for (const [uid, { uname, ctime }] of earliest) {
-                    const md5Hex = md5(String(uid));
-                    let common = 0;
-                    const minLen = Math.min(md5Hex.length, target.length);
-                    for (let i = 0; i < minLen; i++) {
-                        if (md5Hex[i] === target[i]) common++;
-                        else break;
-                    }
-                    results.push({ uid, uname, ctime, md5Hex, common });
+                for (const [uid, info] of earliest) {
+                    const uidStr = String(uid);
+                    const md5Hex = CryptoJS.MD5(uidStr).toString(CryptoJS.enc.Hex);
+                    const common = commonPrefixLen(md5Hex, FIXED_TARGET);
+                    results.push({
+                        uid,
+                        uname: info.uname,
+                        ctime: info.ctime,
+                        md5: md5Hex,
+                        common,
+                    });
                 }
 
+                // 4. 排序：公共前缀降序，时间升序
                 results.sort((a, b) => {
-                    if (b.common !== a.common) return b.common - a.common;
+                    if (a.common !== b.common) return b.common - a.common;
                     return a.ctime - b.ctime;
                 });
 
-                return results.map((item, idx) => ({
-                    ...item,
-                    rank: idx + 1,
-                }));
-            }
+                // 5. 模糊查找用户名（不区分大小写）
+                const lowerInput = input.toLowerCase();
+                const matched = results.filter(r => r.uname.toLowerCase().includes(lowerInput));
 
-            // -------- 渲染表格 --------
-            function renderTable(data, page) {
-                const start = (page - 1) * PAGE_SIZE;
-                const end = Math.min(start + PAGE_SIZE, data.length);
-                const pageData = data.slice(start, end);
-
-                if (!data.length) {
-                    tableBody.innerHTML =
-                        `<tr><td colspan="5" class="empty-state"><div class="icon">📭</div><p>暂无匹配的用户</p></td></tr>`;
+                if (matched.length === 0) {
+                    setStatus(`未找到包含 "${input}" 的用户`, 'error');
+                    showResult([]);
+                    btn.disabled = false;
                     return;
                 }
 
-                let html = '';
-                for (const item of pageData) {
-                    const rankClass = item.rank === 1 ? 'top1' : item.rank === 2 ? 'top2' : item.rank === 3 ? 'top3' : '';
-                    const badge = item.rank <= 3 ? `<span class="rank-badge ${rankClass}">${item.rank}</span>` :
-                        `${item.rank}`;
-                    const timeStr = formatTime(item.ctime);
-                    html += `<tr>
-                        <td class="col-rank">${badge}</td>
-                        <td class="col-time">${timeStr}</td>
-                        <td class="col-md5">${item.md5Hex}</td>
-                        <td class="col-uid">${item.uid}</td>
-                        <td class="col-name" title="${escapeHtml(item.uname)}">${escapeHtml(item.uname)}</td>
-                    </tr>`;
-                }
-                tableBody.innerHTML = html;
-
-                const totalPages = Math.ceil(data.length / PAGE_SIZE) || 1;
-                pageInfo.textContent = `第 ${page} / ${totalPages} 页`;
-                pageJumpInfo.textContent = `${page} / ${totalPages}`;
-                prevPage.disabled = page <= 1;
-                nextPage.disabled = page >= totalPages;
-                matchTotal.textContent = data.length;
-            }
-
-            // -------- 高亮匹配行 --------
-            function highlightRows(keyword) {
-                const rows = tableBody.querySelectorAll('tr');
-                if (!keyword.trim()) {
-                    rows.forEach(row => row.classList.remove('highlight'));
-                    return 0;
-                }
-                const kw = keyword.trim().toLowerCase();
-                let matched = 0;
-                rows.forEach(row => {
-                    const nameCell = row.querySelector('.col-name');
-                    if (!nameCell) return;
-                    const name = nameCell.textContent.toLowerCase();
-                    if (name.includes(kw)) {
-                        row.classList.add('highlight');
-                        matched++;
-                    } else {
-                        row.classList.remove('highlight');
-                    }
+                // 6. 构建结果（只显示排名、用户名、评论时间）
+                const total = results.length;
+                const display = matched.map(r => {
+                    const rank = results.indexOf(r) + 1;
+                    return {
+                        rank,
+                        total,
+                        uname: r.uname,
+                        ctime: r.ctime,
+                        // 高亮匹配部分
+                        highlight: input,
+                    };
                 });
-                return matched;
+
+                setStatus(`找到 ${matched.length} 位匹配用户，排名如下`, 'ok');
+                showResult(display);
+
+            } catch (err) {
+                console.error(err);
+                setStatus(`出错：${err.message || '未知错误'}`, 'error');
+                showResult([]);
+            } finally {
+                btn.disabled = false;
             }
+        }
 
-            // -------- 搜索 --------
-            function doSearch(keyword) {
-                const kw = keyword.trim();
-                if (!kw) {
-                    filteredData = allData.slice();
-                    rankInfo.style.display = 'none';
-                    matchTotal.textContent = allData.length;
-                    currentPage = 1;
-                    renderTable(filteredData, currentPage);
-                    return;
-                }
+        // ================================================================
+        //  UI 辅助
+        // ================================================================
+        const statusText = document.getElementById('statusText');
+        const statusArea = document.getElementById('statusArea');
+        const resultList = document.getElementById('resultList');
+        const emptyHint = document.getElementById('emptyHint');
 
-                const lowerKw = kw.toLowerCase();
-                const matched = allData.filter(item =>
-                    item.uname.toLowerCase().includes(lowerKw)
-                );
-                filteredData = matched;
-                matchTotal.textContent = matched.length;
+        function setStatus(msg, type) {
+            // type: '' | 'loading' | 'error' | 'ok'
+            const spinner = statusArea.querySelector('.spinner');
+            if (spinner) spinner.remove();
 
-                if (matched.length === 1) {
-                    rankInfo.style.display = 'inline-block';
-                    rankDisplay.textContent = `第 ${matched[0].rank} 名`;
-                } else if (matched.length > 1) {
-                    const ranks = matched.map(m => m.rank).sort((a, b) => a - b);
-                    const rankStr = ranks.length <= 5 ?
-                        ranks.join('、') :
-                        ranks.slice(0, 3).join('、') + '…' + ranks.slice(-1);
-                    rankInfo.style.display = 'inline-block';
-                    rankDisplay.textContent = `第 ${rankStr} 名 (共${matched.length}位)`;
+            // 清除旧的状态类
+            statusText.className = '';
+
+            if (type === 'loading') {
+                const sp = document.createElement('span');
+                sp.className = 'spinner';
+                statusArea.prepend(sp);
+                statusText.textContent = msg;
+                statusText.className = '';
+            } else if (type === 'error') {
+                statusText.textContent = '⚠ ' + msg;
+                statusText.className = 'err';
+            } else if (type === 'ok') {
+                statusText.textContent = '✓ ' + msg;
+                statusText.className = 'ok';
+            } else {
+                statusText.textContent = msg;
+                statusText.className = '';
+            }
+        }
+
+        function showResult(items) {
+            // 清空
+            resultList.innerHTML = '';
+
+            if (!items || items.length === 0) {
+                emptyHint.style.display = 'block';
+                return;
+            }
+            emptyHint.style.display = 'none';
+
+            for (const item of items) {
+                const div = document.createElement('div');
+                div.className = 'result-item';
+
+                // 排名
+                const rankSpan = document.createElement('span');
+                rankSpan.className = 'rank';
+                rankSpan.textContent = `#${item.rank} / ${item.total}`;
+
+                // 用户名（高亮匹配部分）
+                const unameSpan = document.createElement('span');
+                unameSpan.className = 'uname';
+                const raw = item.uname;
+                const hl = item.highlight || '';
+                if (hl && raw.toLowerCase().includes(hl.toLowerCase())) {
+                    const idx = raw.toLowerCase().indexOf(hl.toLowerCase());
+                    const before = raw.slice(0, idx);
+                    const match = raw.slice(idx, idx + hl.length);
+                    const after = raw.slice(idx + hl.length);
+                    unameSpan.innerHTML = before + '<span class="highlight">' + match + '</span>' + after;
                 } else {
-                    rankInfo.style.display = 'none';
+                    unameSpan.textContent = raw;
                 }
 
-                currentPage = 1;
-                renderTable(filteredData, currentPage);
-                if (kw) {
-                    setTimeout(() => highlightRows(kw), 50);
-                }
+                // 评论时间
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'time';
+                timeSpan.textContent = formatTime(item.ctime);
+
+                div.appendChild(rankSpan);
+                div.appendChild(unameSpan);
+                div.appendChild(timeSpan);
+                resultList.appendChild(div);
+            }
+        }
+
+        // ================================================================
+        //  事件绑定
+        // ================================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('usernameInput');
+            const btn = document.getElementById('searchBtn');
+
+            function handleSearch() {
+                doSearch(input.value);
             }
 
-            // -------- 加载数据 --------
-            async function loadData() {
-                if (isLoading) return;
-                isLoading = true;
-                spinner.style.display = 'inline-block';
-                statusStats.style.display = 'none';
-                retryBtn.style.display = 'none';
-                statusMsg.textContent = USE_PROXY ? '⏳ 正在通过代理获取评论…' : '⏳ 正在获取评论…';
-                statusMsg.className = 'msg';
-                loadStartTime = Date.now();
+            btn.addEventListener('click', handleSearch);
 
-                try {
-                    let lastProgress = '';
-                    const rawComments = await fetchComments(AID, SESSDATA, (page, count, total) => {
-                        const progress = `📄 第 ${page} 页 · 已获取 ${count} 条`;
-                        if (progress !== lastProgress) {
-                            statusMsg.textContent = `⏳ ${progress}` + (total ? ` / 共 ${total} 条` : '');
-                            lastProgress = progress;
-                        }
-                    });
-
-                    if (!rawComments.length) {
-                        statusMsg.textContent = '⚠️ 未获取到任何评论，请检查 AID 或网络。';
-                        statusMsg.className = 'msg err';
-                        retryBtn.style.display = 'inline-block';
-                        return;
-                    }
-
-                    statusMsg.textContent = `🔄 正在处理 ${rawComments.length} 条评论…`;
-
-                    const ranked = computeRanking(rawComments, TARGET);
-                    allData = ranked;
-                    filteredData = ranked.slice();
-                    const elapsed = ((Date.now() - loadStartTime) / 1000).toFixed(1);
-
-                    totalCount.textContent = ranked.length;
-                    loadTime.textContent = elapsed;
-                    statusStats.style.display = 'inline-block';
-                    statusMsg.textContent = '✅ 加载完成';
-                    statusMsg.className = 'msg';
-                    matchTotal.textContent = ranked.length;
-                    rankInfo.style.display = 'none';
-
-                    currentPage = 1;
-                    renderTable(filteredData, currentPage);
-                    retryBtn.style.display = 'none';
-
-                } catch (err) {
-                    statusMsg.textContent = `❌ 错误: ${err.message}`;
-                    statusMsg.className = 'msg err';
-                    retryBtn.style.display = 'inline-block';
-                    tableBody.innerHTML =
-                        `<tr><td colspan="5" class="empty-state"><div class="icon">⚠️</div><p>加载失败，请点击「重试」或检查网络</p></td></tr>`;
-                    console.error(err);
-                } finally {
-                    isLoading = false;
-                    spinner.style.display = 'none';
-                }
-            }
-
-            // -------- 重置（清空数据） --------
-            function resetData() {
-                allData = [];
-                filteredData = [];
-                currentPage = 1;
-                tableBody.innerHTML =
-                    `<tr><td colspan="5" class="empty-state"><div class="icon">📭</div><p>暂无数据，请加载评论</p></td></tr>`;
-                statusMsg.textContent = '💡 点击「重试」重新加载';
-                statusMsg.className = 'msg';
-                statusStats.style.display = 'none';
-                rankInfo.style.display = 'none';
-                matchTotal.textContent = '0';
-                pageInfo.textContent = '第 1 / 1 页';
-                pageJumpInfo.textContent = '1 / 1';
-                prevPage.disabled = true;
-                nextPage.disabled = true;
-                retryBtn.style.display = 'inline-block';
-                searchInput.value = '';
-            }
-
-            // -------- 分页 --------
-            function goToPage(page) {
-                const totalPages = Math.ceil(filteredData.length / PAGE_SIZE) || 1;
-                if (page < 1 || page > totalPages) return;
-                currentPage = page;
-                renderTable(filteredData, currentPage);
-                const kw = searchInput.value.trim();
-                if (kw) highlightRows(kw);
-                document.getElementById('tableWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-
-            // -------- 事件绑定 --------
-            searchBtn.addEventListener('click', () => {
-                if (!allData.length) {
-                    statusMsg.textContent = '⚠️ 请先加载评论数据';
-                    statusMsg.className = 'msg err';
-                    return;
-                }
-                doSearch(searchInput.value);
-            });
-
-            searchInput.addEventListener('keydown', (e) => {
+            input.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    searchBtn.click();
+                    handleSearch();
                 }
             });
 
-            prevPage.addEventListener('click', () => goToPage(currentPage - 1));
-            nextPage.addEventListener('click', () => goToPage(currentPage + 1));
+            // 自动聚焦
+            input.focus();
 
-            retryBtn.addEventListener('click', () => {
-                resetData();
-                loadData();
-            });
-
-            // -------- 自动加载 --------
-            window.addEventListener('load', () => {
-                loadData();
-            });
-
-            console.log('🎯 B站评论排名查询器 (固定参数 + CORS代理) 已加载');
-            console.log(`   AID = ${AID}, 目标串 = ${TARGET}, 代理 = ${USE_PROXY}`);
-        })();
+            // 初始状态
+            setStatus('请输入用户名开始查找', '');
+            showResult([]);
+        });
     </script>
+
 </body>
 </html>
